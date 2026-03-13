@@ -1,4 +1,4 @@
-import { access } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -6,7 +6,13 @@ import { resolve } from "node:path";
 import { readAggregateProviderState, type AggregateProvider } from "../common/aggregate-llm.js";
 import { readEnvValue } from "../common/env.js";
 import { readReportOutputDirectory } from "../common/report-output.js";
-import { loadSourceList } from "../fulltest/source-list.js";
+import {
+  isSourceListTemplateUnchanged,
+  loadSourceList,
+  SOURCE_LIST_TEMPLATE,
+  SOURCE_LIST_TEMPLATE_GUIDANCE,
+  type SourceListTemplateGuideItem,
+} from "../fulltest/source-list.js";
 import { loadXCredentials } from "../x/env.js";
 import { resolveChromePath } from "./browser.js";
 
@@ -25,6 +31,11 @@ export interface DoctorReport {
       youtube: number;
       others: number;
     };
+  };
+  source_list: {
+    unchanged_from_template: boolean;
+    template_markdown: string;
+    template_guidance: SourceListTemplateGuideItem[];
   };
   binaries: {
     npm_available: boolean;
@@ -184,6 +195,12 @@ export function buildNextActions(report: DoctorReport): string[] {
     actions.push("Edit sourceList.md and add the channels/newsletters you want to track.");
   }
 
+  if (report.source_list.unchanged_from_template) {
+    actions.push(
+      "sourceList.md is still the default template. Replace the demo Telegram/Substack/YouTube entries and add your own RSS-supported websites.",
+    );
+  }
+
   if (report.aggregate_llm.active_provider === "local") {
     actions.push(
       "Configure an aggregate LLM provider in .env: LLM_API_KEY + LLM_API_URL (+ LLM_MODEL optional), or ANTHROPIC_API_KEY + ANTHROPIC_MODEL.",
@@ -243,9 +260,14 @@ export async function collectDoctorReport(
     pathExists(sourceListPath),
   ]);
 
+  const sourceListMarkdown = sourceListExists
+    ? await readFile(sourceListPath, "utf8")
+    : "";
   const sourceCounts = sourceListExists
     ? await loadSourceList(sourceListPath)
     : { telegram: [], substack: [], youtube: [], others: [] };
+  const sourceListUnchanged =
+    sourceListExists && isSourceListTemplateUnchanged(sourceListMarkdown);
 
   const aggregateProvider = await readAggregateProviderState();
   const youtubeCookiesPath = await readEnvValue("YOUTUBE_COOKIES_FILE");
@@ -305,6 +327,11 @@ export async function collectDoctorReport(
         others: sourceCounts.others.length,
       },
     },
+    source_list: {
+      unchanged_from_template: sourceListUnchanged,
+      template_markdown: SOURCE_LIST_TEMPLATE,
+      template_guidance: SOURCE_LIST_TEMPLATE_GUIDANCE,
+    },
     binaries: {
       npm_available: npmAvailable,
       yt_dlp_available: ytDlpAvailable,
@@ -356,7 +383,8 @@ export async function collectDoctorReport(
       schedule_timezone: scheduleTimezone,
     },
     readiness: {
-      fulltest: sourceListExists && npmAvailable && ytDlpAvailable,
+      fulltest:
+        sourceListExists && !sourceListUnchanged && npmAvailable && ytDlpAvailable,
       x_assisted_setup: xCdpReachable || Boolean(xCredentials),
       notebooklm_optional:
         notebooklmPythonAvailable && notebooklmCliAvailable && notebooklmAuthValid,

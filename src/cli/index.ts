@@ -69,6 +69,23 @@ function printDoctorReport(report: DoctorReport): void {
     `  source counts: telegram=${report.files.source_counts.telegram} substack=${report.files.source_counts.substack} youtube=${report.files.source_counts.youtube} others=${report.files.source_counts.others}`,
   );
   console.log("");
+  console.log("Source List");
+  console.log(
+    `  unchanged from template: ${report.source_list.unchanged_from_template}`,
+  );
+  if (report.source_list.unchanged_from_template) {
+    console.log("  guidance:");
+    for (const item of report.source_list.template_guidance) {
+      console.log(`    - ${item.section}: ${item.description}`);
+      console.log(`      example: ${item.example}`);
+      console.log(`      note: ${item.note}`);
+    }
+    console.log("  template:");
+    for (const line of report.source_list.template_markdown.split(/\r?\n/)) {
+      console.log(`    ${line}`);
+    }
+  }
+  console.log("");
   console.log("Aggregate LLM");
   console.log(`  active provider: ${report.aggregate_llm.active_provider}`);
   console.log(`  provider name: ${report.aggregate_llm.provider_name}`);

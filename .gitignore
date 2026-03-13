@@ -1,0 +1,14 @@
+.DS_Store
+.env
+.env.local
+.cache/
+.chrome-nlm/
+.chrome-nlm-manual/
+.nlm-profile/
+.venv-nlm/
+dist/
+logs/
+node_modules/
+reports/
+youtube.cookies.txt
+*.log

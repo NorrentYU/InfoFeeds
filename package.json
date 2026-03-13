@@ -1,0 +1,45 @@
+{
+  "name": "infofeeds",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "infofeeds": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:unit": "vitest run tests/telegram/url.test.ts tests/telegram/parser.test.ts tests/telegram/filters.test.ts tests/telegram/retry.test.ts tests/telegram/x-fallback.test.ts tests/telegram/x-handoff.test.ts tests/telegram/no-external-link-text.test.ts tests/telegram/substack-rss.test.ts tests/substack/url.test.ts tests/substack/filters.test.ts tests/substack/rss.test.ts tests/substack/index.unit.test.ts tests/substack/retry.test.ts tests/youtube/url.test.ts tests/youtube/captions.test.ts tests/youtube/index.unit.test.ts tests/youtube/retry.test.ts tests/youtube-v2/planner.test.ts tests/youtube-v2/index.unit.test.ts tests/youtube-v2/benchmark.test.ts tests/youtube-v2/cursor.test.ts tests/x/url.test.ts tests/x/filters.test.ts tests/x/article.test.ts tests/x/index.unit.test.ts tests/x/retry.test.ts tests/others/url.test.ts tests/others/filters.test.ts tests/others/rss.test.ts tests/others/index.unit.test.ts tests/others/retry.test.ts tests/aggregate/url.test.ts tests/aggregate/filters.test.ts tests/aggregate/compose.test.ts tests/aggregate/index.unit.test.ts tests/aggregate/retry.test.ts tests/aggregate/source-list.test.ts tests/aggregate/summarizer.test.ts tests/aggregate/notebooklm.test.ts tests/cli/status.test.ts tests/scheduler/time.test.ts",
+    "test:integration": "vitest run tests/telegram/integration.real-network.test.ts tests/substack/integration.real-network.test.ts tests/youtube/integration.real-network.test.ts tests/x/integration.real-network.test.ts tests/others/integration.real-network.test.ts tests/aggregate/integration.local.test.ts",
+    "cli": "tsx src/cli/index.ts",
+    "telegram:sample": "tsx src/telegram/run.ts",
+    "substack:sample": "tsx src/substack/run.ts",
+    "youtube:sample": "tsx src/youtube/run.ts",
+    "youtube:v2:sample": "tsx src/youtube-v2/run.ts",
+    "youtube:v2:benchmark": "tsx src/youtube-v2/run-benchmark.ts",
+    "others:sample": "tsx src/others/run.ts",
+    "aggregate:sample": "tsx src/aggregate/run.ts",
+    "fulltest": "tsx src/fulltest/run.ts",
+    "fulltest:24h": "FULLTEST_WINDOW_HOURS=24 tsx src/fulltest/run.ts",
+    "fulltest:48h": "FULLTEST_WINDOW_HOURS=48 tsx src/fulltest/run.ts",
+    "fulltest:notebooklm": "tsx src/fulltest/run.ts notebooklm",
+    "fulltest:24h:notebooklm": "FULLTEST_WINDOW_HOURS=24 tsx src/fulltest/run.ts notebooklm",
+    "fulltest:48h:notebooklm": "FULLTEST_WINDOW_HOURS=48 tsx src/fulltest/run.ts notebooklm",
+    "x:init-session": "tsx src/x/init-session.ts",
+    "x:cdp-smoke": "tsx src/x/cdp-smoke.ts",
+    "x:probe-status": "tsx src/x/probe-status.ts",
+    "x:sample": "tsx src/x/run.ts",
+    "schedule:daily": "tsx src/scheduler/run.ts",
+    "schedule:once": "tsx src/scheduler/once.ts"
+  },
+  "dependencies": {
+    "cheerio": "^1.1.2",
+    "playwright": "^1.58.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}

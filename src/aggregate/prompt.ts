@@ -1,9 +1,71 @@
-import { readFile } from "node:fs/promises";
+import { constants, existsSync } from "node:fs";
+import { access, readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { readEnvValue } from "../common/env.js";
 
-export async function loadBasePrompt(customPath?: string): Promise<string> {
-  const path = customPath || new URL("./default-summary-prompt.md", import.meta.url);
+const modulePath = fileURLToPath(import.meta.url);
+const bundledPromptPath = fileURLToPath(
+  new URL("./default-summary-prompt.md", import.meta.url),
+);
+const sourceFallbackPromptPath = resolve(
+  dirname(modulePath),
+  "../../src/aggregate/default-summary-prompt.md",
+);
+
+export const BUILTIN_BASE_PROMPT_PATH = existsSync(bundledPromptPath)
+  ? bundledPromptPath
+  : sourceFallbackPromptPath;
+
+export interface BasePromptState {
+  builtin_path: string;
+  configured_path: string | null;
+  configured_exists: boolean;
+  active_path: string;
+  active_exists: boolean;
+  using_custom_prompt: boolean;
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path, constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function readBasePromptState(
+  projectRoot: string = process.cwd(),
+): Promise<BasePromptState> {
+  const configuredValue = await readEnvValue("AGGREGATE_BASE_PROMPT_FILE");
+  const configuredPath = configuredValue ? resolve(projectRoot, configuredValue) : null;
+  const configuredExists = configuredPath ? await pathExists(configuredPath) : false;
+  const usingCustomPrompt = Boolean(configuredPath);
+  const activePath = configuredPath || BUILTIN_BASE_PROMPT_PATH;
+  const activeExists = usingCustomPrompt ? configuredExists : true;
+
+  return {
+    builtin_path: BUILTIN_BASE_PROMPT_PATH,
+    configured_path: configuredPath,
+    configured_exists: configuredExists,
+    active_path: activePath,
+    active_exists: activeExists,
+    using_custom_prompt: usingCustomPrompt,
+  };
+}
+
+export async function loadBasePrompt(customPath?: string | URL): Promise<string> {
+  const path = customPath || BUILTIN_BASE_PROMPT_PATH;
   const buffer = await readFile(path, "utf8");
   return buffer.trim();
+}
+
+export async function loadConfiguredBasePrompt(
+  projectRoot: string = process.cwd(),
+): Promise<string> {
+  const state = await readBasePromptState(projectRoot);
+  return await loadBasePrompt(state.active_path);
 }
 
 export function buildEffectivePrompt(basePrompt: string, userPrompt?: string): string {

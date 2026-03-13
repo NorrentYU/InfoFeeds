@@ -12,7 +12,7 @@ import { renderPdfFromMarkdown } from "./pdf.js";
 import {
   buildEffectivePrompt,
   buildSummaryPromptInput,
-  loadBasePrompt,
+  loadConfiguredBasePrompt,
 } from "./prompt.js";
 import { createSummaryFn } from "./summarizer.js";
 import type {
@@ -408,7 +408,7 @@ export async function aggregateDigest(
   const filteredCount = inputCount - prepared.length;
   const dedupedCount = prepared.length - deduped.length;
 
-  const basePrompt = await loadBasePrompt();
+  const basePrompt = await loadConfiguredBasePrompt(process.cwd());
   const effectivePrompt = buildEffectivePrompt(basePrompt, options.userPrompt);
 
   const summaryFn = dependencies.summaryFn || createSummaryFn();

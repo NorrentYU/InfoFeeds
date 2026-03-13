@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { buildBrowserPreset, launchBrowserSession } from "./browser.js";
+import { scaffoldCustomPrompt } from "./prompt.js";
 import { runTsxScript, runZshScript } from "./process.js";
 import { buildNextActions, collectDoctorReport, type DoctorReport } from "./status.js";
 
@@ -11,6 +12,7 @@ Usage:
   infofeeds doctor [--json]
   infofeeds setup checklist [--json]
   infofeeds setup open-browser <x|notebooklm> [--port <number>] [--profile-dir <path>]
+  infofeeds setup prompt [--path <path>] [--force] [--json]
   infofeeds setup x-session [--timeout-minutes <number>]
   infofeeds run fulltest [--window-hours <number>] [--youtube-summary <default|notebooklm>] [--x-mode <test|production>] [--include-streams]
   infofeeds run smoke x
@@ -24,6 +26,7 @@ Examples:
   npm run cli -- doctor --json
   npm run cli -- setup open-browser x
   npm run cli -- setup open-browser notebooklm --port 9233
+  npm run cli -- setup prompt --path ./aggregate-prompt.local.md
   npm run cli -- run fulltest --window-hours 24 --youtube-summary notebooklm
   npm run cli -- run smoke x
   npm run cli -- schedule once --window-hours 24
@@ -94,6 +97,20 @@ function printDoctorReport(report: DoctorReport): void {
   );
   console.log(
     `  aliases: llm=${report.aggregate_llm.aliases.llm} openai=${report.aggregate_llm.aliases.openai} bailian=${report.aggregate_llm.aliases.bailian}`,
+  );
+  console.log("");
+  console.log("Aggregate Prompt");
+  console.log(`  built-in path: ${report.aggregate_prompt.built_in_path}`);
+  console.log(
+    `  custom configured: ${report.aggregate_prompt.using_custom_prompt}`,
+  );
+  console.log(
+    `  configured path: ${report.aggregate_prompt.configured_path || "N/A"}`,
+  );
+  console.log(`  active path: ${report.aggregate_prompt.active_path}`);
+  console.log(`  active exists: ${report.aggregate_prompt.active_exists}`);
+  console.log(
+    `  optional override: ${report.aggregate_prompt.customize_command}`,
   );
   console.log("");
   console.log("YouTube");
@@ -189,6 +206,32 @@ async function handleSetup(args: string[], projectRoot: string): Promise<number>
         null,
         2,
       ),
+    );
+    return 0;
+  }
+
+  if (subcommand === "prompt") {
+    const result = await scaffoldCustomPrompt({
+      projectRoot,
+      path: readOption(args, "--path"),
+      force: hasFlag(args, "--force"),
+    });
+    if (hasFlag(args, "--json")) {
+      console.log(JSON.stringify(result, null, 2));
+      return 0;
+    }
+    console.log("InfoFeeds Prompt Setup");
+    console.log(`built-in prompt: ${result.built_in_path}`);
+    console.log(`editable prompt: ${result.target_path}`);
+    console.log(`already existed: ${result.target_exists}`);
+    console.log(`created: ${result.created}`);
+    console.log(`overwritten: ${result.overwritten}`);
+    console.log("");
+    console.log("Add this to .env if you want to use the editable file:");
+    console.log(`${result.env_key}=${result.env_value}`);
+    console.log("");
+    console.log(
+      "If you prefer the built-in prompt, leave AGGREGATE_BASE_PROMPT_FILE empty.",
     );
     return 0;
   }

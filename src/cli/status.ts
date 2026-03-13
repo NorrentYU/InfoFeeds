@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { readAggregateProviderState, type AggregateProvider } from "../common/aggregate-llm.js";
 import { readEnvValue } from "../common/env.js";
 import { readReportOutputDirectory } from "../common/report-output.js";
+import { readBasePromptState } from "../aggregate/prompt.js";
 import {
   isSourceListTemplateUnchanged,
   loadSourceList,
@@ -65,6 +66,15 @@ export interface DoctorReport {
       openai: boolean;
       bailian: boolean;
     };
+  };
+  aggregate_prompt: {
+    built_in_path: string;
+    configured_path: string | null;
+    configured_exists: boolean;
+    active_path: string;
+    active_exists: boolean;
+    using_custom_prompt: boolean;
+    customize_command: string;
   };
   youtube: {
     cookies_file: {
@@ -190,6 +200,7 @@ async function checkNotebooklmAuth(projectRoot: string): Promise<boolean> {
 
 export function buildNextActions(report: DoctorReport): string[] {
   const actions: string[] = [];
+  const optionalActions: string[] = [];
 
   if (!report.files.source_list_exists || report.files.source_counts.youtube === 0) {
     actions.push("Edit sourceList.md and add the channels/newsletters you want to track.");
@@ -204,6 +215,19 @@ export function buildNextActions(report: DoctorReport): string[] {
   if (report.aggregate_llm.active_provider === "local") {
     actions.push(
       "Configure an aggregate LLM provider in .env: LLM_API_KEY + LLM_API_URL (+ LLM_MODEL optional), or ANTHROPIC_API_KEY + ANTHROPIC_MODEL.",
+    );
+  }
+
+  if (
+    report.aggregate_prompt.using_custom_prompt &&
+    !report.aggregate_prompt.active_exists
+  ) {
+    actions.push(
+      `AGGREGATE_BASE_PROMPT_FILE points to a missing file. Fix ${report.aggregate_prompt.active_path} or clear the env entry to use the built-in prompt.`,
+    );
+  } else if (!report.aggregate_prompt.using_custom_prompt) {
+    optionalActions.push(
+      `Optional: keep the built-in summary prompt, or run \`${report.aggregate_prompt.customize_command}\` to create an editable prompt file.`,
     );
   }
 
@@ -242,7 +266,7 @@ export function buildNextActions(report: DoctorReport): string[] {
     actions.push("No blocking issues detected. You can run `npm run cli -- run fulltest --window-hours 24`.");
   }
 
-  return actions;
+  return [...actions, ...optionalActions];
 }
 
 export async function collectDoctorReport(
@@ -270,6 +294,7 @@ export async function collectDoctorReport(
     sourceListExists && isSourceListTemplateUnchanged(sourceListMarkdown);
 
   const aggregateProvider = await readAggregateProviderState();
+  const aggregatePrompt = await readBasePromptState(projectRoot);
   const youtubeCookiesPath = await readEnvValue("YOUTUBE_COOKIES_FILE");
   const youtubeCookiesExists = youtubeCookiesPath
     ? await pathExists(youtubeCookiesPath)
@@ -354,6 +379,16 @@ export async function collectDoctorReport(
       configured: aggregateProvider.configured,
       aliases: aggregateProvider.aliases,
     },
+    aggregate_prompt: {
+      built_in_path: aggregatePrompt.builtin_path,
+      configured_path: aggregatePrompt.configured_path,
+      configured_exists: aggregatePrompt.configured_exists,
+      active_path: aggregatePrompt.active_path,
+      active_exists: aggregatePrompt.active_exists,
+      using_custom_prompt: aggregatePrompt.using_custom_prompt,
+      customize_command:
+        "npm run cli -- setup prompt --path ./aggregate-prompt.local.md",
+    },
     youtube: {
       cookies_file: {
         configured: Boolean(youtubeCookiesPath),
@@ -384,7 +419,11 @@ export async function collectDoctorReport(
     },
     readiness: {
       fulltest:
-        sourceListExists && !sourceListUnchanged && npmAvailable && ytDlpAvailable,
+        sourceListExists &&
+        !sourceListUnchanged &&
+        npmAvailable &&
+        ytDlpAvailable &&
+        aggregatePrompt.active_exists,
       x_assisted_setup: xCdpReachable || Boolean(xCredentials),
       notebooklm_optional:
         notebooklmPythonAvailable && notebooklmCliAvailable && notebooklmAuthValid,

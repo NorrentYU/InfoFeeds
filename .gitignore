@@ -1,6 +1,7 @@
 .DS_Store
 .env
 .env.local
+aggregate-prompt.local.md
 AGENTS.md
 .cache/
 .chrome-nlm/

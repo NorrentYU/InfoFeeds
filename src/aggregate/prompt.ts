@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 
 export async function loadBasePrompt(customPath?: string): Promise<string> {
-  const path = customPath || new URL("../../contracts/prompts/default-summary-prompt.md", import.meta.url);
+  const path = customPath || new URL("./default-summary-prompt.md", import.meta.url);
   const buffer = await readFile(path, "utf8");
   return buffer.trim();
 }

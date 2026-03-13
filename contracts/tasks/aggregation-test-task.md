@@ -8,7 +8,7 @@
 2. 默认 prompt：`contracts/prompts/default-summary-prompt.md`。
 3. 用户 prompt：空/非空两组场景。
 4. 默认窗口与时区：24h + UTC+8。
-5. LLM 配置：`LLM_API_KEY` 可用，`LLM_API_URL` 可解析并生效（支持 `.../v1`、完整 `.../chat/completions` 或完整 `.../responses`），`LLM_MODEL` 可解析并生效；Gemini 为兜底路径。兼容保留 `OPENAI_*` / `BAILIAN_*` 旧变量。
+5. LLM 配置：`LLM_API_KEY` 可用，`LLM_API_URL` 可解析并生效（支持 `.../v1`、完整 `.../chat/completions` 或完整 `.../responses`），`LLM_MODEL` 可解析并生效；Anthropic 为兜底路径，`ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` / `ANTHROPIC_BASE_URL` / `ANTHROPIC_VERSION` 可解析并生效。兼容保留 `OPENAI_*` / `BAILIAN_*` 旧变量。
 
 ## 测试用例（必须全部执行）
 1. 输入装载：可读取并识别 5 个渠道 records/failures。

@@ -20,12 +20,18 @@ The project needs six categories of configuration:
 
    Provider priority is:
    1. OpenAI-compatible API
-   2. Gemini
+   2. Anthropic
    3. Local fallback
 
    Legacy aliases are still accepted for compatibility:
    `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL`
    `BAILIAN_API_KEY`, `BAILIAN_BASE_URL`, `BAILIAN_MODEL`
+
+   Anthropic is also supported via:
+   `ANTHROPIC_API_KEY`
+   `ANTHROPIC_MODEL`
+   `ANTHROPIC_BASE_URL` (optional)
+   `ANTHROPIC_VERSION` (optional, default `2023-06-01`)
 
 3. YouTube cookies file
    `YOUTUBE_COOKIES_FILE` should point to a readable cookies file if `yt-dlp` needs cookies for video metadata / captions.
@@ -73,6 +79,35 @@ For agent-friendly machine-readable output:
 ```bash
 npm run cli -- doctor --json
 ```
+
+## YouTube cookies setup
+
+If YouTube metadata or captions require login cookies, use this Chrome flow:
+
+1. Install the Chrome extension `Get cookies.txt LOCALLY` from the Chrome Web Store:
+   [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
+2. Use the same Chrome profile that is already logged in to YouTube.
+3. Open `https://www.youtube.com/` and confirm the account session is valid.
+4. Click the extension icon while the active tab is on YouTube.
+5. Export cookies in Netscape `cookies.txt` format.
+6. Save the file somewhere stable, for example:
+   `/Users/yourname/Desktop/youtube.cookies.txt`
+7. Set the path in `.env`:
+
+```bash
+YOUTUBE_COOKIES_FILE=/Users/yourname/Desktop/youtube.cookies.txt
+```
+
+8. Re-run the doctor:
+
+```bash
+npm run cli -- doctor
+```
+
+Notes:
+- Export from the Chrome profile that is actually signed in to YouTube.
+- Prefer `Get cookies.txt LOCALLY`; do not use similarly named alternatives.
+- If the cookie file is rotated or expires, export it again and keep the `.env` path unchanged.
 
 ## CLI overview
 
@@ -200,7 +235,7 @@ npm run cli -- doctor --json
 
 Typical missing items:
 `sourceList.md`
-an OpenAI-compatible LLM API key / URL
+an OpenAI-compatible LLM API key / URL or Anthropic API key / model
 YouTube cookies file
 X login
 NotebookLM login

@@ -1,6 +1,6 @@
 import { readEnvValue } from "./env.js";
 
-export type AggregateProvider = "openai_compatible" | "gemini" | "local";
+export type AggregateProvider = "openai_compatible" | "anthropic" | "local";
 export type OpenAiCompatibleApiStyle = "chat_completions" | "responses";
 
 export interface OpenAiCompatibleLlmConfig {
@@ -19,7 +19,7 @@ export interface AggregateProviderState {
   providerName: string;
   configured: {
     openai_compatible: boolean;
-    gemini: boolean;
+    anthropic: boolean;
   };
   aliases: {
     llm: boolean;
@@ -58,6 +58,17 @@ function buildEndpoint(rawBaseUrl: string | undefined, fallback: string): {
     apiStyle: "chat_completions",
     baseUrl,
   };
+}
+
+function buildAnthropicEndpoint(rawBaseUrl: string | undefined): string {
+  const baseUrl = normalizeBaseUrl(rawBaseUrl, "https://api.anthropic.com");
+  if (baseUrl.endsWith("/v1/messages")) {
+    return baseUrl;
+  }
+  if (baseUrl.endsWith("/v1")) {
+    return `${baseUrl}/messages`;
+  }
+  return `${baseUrl}/v1/messages`;
 }
 
 export async function readOpenAiCompatibleLlmConfig(): Promise<OpenAiCompatibleLlmConfig> {
@@ -137,9 +148,32 @@ export async function readOpenAiCompatibleLlmConfig(): Promise<OpenAiCompatibleL
   };
 }
 
+export interface AnthropicLlmConfig {
+  configured: boolean;
+  apiKey: string | null;
+  model: string;
+  endpoint: string;
+  version: string;
+}
+
+export async function readAnthropicLlmConfig(): Promise<AnthropicLlmConfig> {
+  const apiKey = await readEnvValue("ANTHROPIC_API_KEY");
+  const model = (await readEnvValue("ANTHROPIC_MODEL")) || "";
+  const endpoint = buildAnthropicEndpoint(await readEnvValue("ANTHROPIC_BASE_URL"));
+  const version = (await readEnvValue("ANTHROPIC_VERSION")) || "2023-06-01";
+
+  return {
+    configured: Boolean(apiKey && model),
+    apiKey: apiKey || null,
+    model,
+    endpoint,
+    version,
+  };
+}
+
 export async function readAggregateProviderState(): Promise<AggregateProviderState> {
   const openAiCompatible = await readOpenAiCompatibleLlmConfig();
-  const geminiConfigured = Boolean(await readEnvValue("GEMINI_API_KEY"));
+  const anthropic = await readAnthropicLlmConfig();
 
   if (openAiCompatible.configured) {
     return {
@@ -147,7 +181,7 @@ export async function readAggregateProviderState(): Promise<AggregateProviderSta
       providerName: openAiCompatible.providerName,
       configured: {
         openai_compatible: true,
-        gemini: geminiConfigured,
+        anthropic: anthropic.configured,
       },
       aliases: {
         llm: openAiCompatible.source === "llm",
@@ -157,13 +191,13 @@ export async function readAggregateProviderState(): Promise<AggregateProviderSta
     };
   }
 
-  if (geminiConfigured) {
+  if (anthropic.configured) {
     return {
-      activeProvider: "gemini",
-      providerName: "Gemini",
+      activeProvider: "anthropic",
+      providerName: "Anthropic",
       configured: {
         openai_compatible: false,
-        gemini: true,
+        anthropic: true,
       },
       aliases: {
         llm: false,
@@ -178,7 +212,7 @@ export async function readAggregateProviderState(): Promise<AggregateProviderSta
     providerName: "Local Fallback",
     configured: {
       openai_compatible: false,
-      gemini: false,
+      anthropic: false,
     },
     aliases: {
       llm: false,

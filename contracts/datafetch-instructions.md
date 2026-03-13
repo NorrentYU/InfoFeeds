@@ -121,7 +121,7 @@
 4. 聚合层必须输出三件套：`digest-*.md`、`digest-*.pdf`、`digest-*.manifest.json`。
 5. 聚合层必须执行二次正文有效性校验与跨渠道 URL 去重。
 6. 摘要失败条目必须留痕到 manifest，不得伪造成功摘要。
-7. 聚合层默认 LLM provider 为 OpenAI 兼容接口（读取 `LLM_API_KEY` + `LLM_API_URL` + `LLM_MODEL`）；Gemini 为兜底。兼容保留 `OPENAI_*` / `BAILIAN_*` 旧变量。
+7. 聚合层默认 LLM provider 为 OpenAI 兼容接口（读取 `LLM_API_KEY` + `LLM_API_URL` + `LLM_MODEL`）；Anthropic 为兜底（读取 `ANTHROPIC_API_KEY` + `ANTHROPIC_MODEL`）。兼容保留 `OPENAI_*` / `BAILIAN_*` 旧变量。
 
 ## 6. 输出格式模板（必须严格一致）
 ```markdown

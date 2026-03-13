@@ -73,7 +73,7 @@ function printDoctorReport(report: DoctorReport): void {
   console.log(`  active provider: ${report.aggregate_llm.active_provider}`);
   console.log(`  provider name: ${report.aggregate_llm.provider_name}`);
   console.log(
-    `  configured: openai_compatible=${report.aggregate_llm.configured.openai_compatible} gemini=${report.aggregate_llm.configured.gemini}`,
+    `  configured: openai_compatible=${report.aggregate_llm.configured.openai_compatible} anthropic=${report.aggregate_llm.configured.anthropic}`,
   );
   console.log(
     `  aliases: llm=${report.aggregate_llm.aliases.llm} openai=${report.aggregate_llm.aliases.openai} bailian=${report.aggregate_llm.aliases.bailian}`,

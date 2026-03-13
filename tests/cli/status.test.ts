@@ -33,7 +33,7 @@ function baseReport(): DoctorReport {
       provider_name: "OpenAI",
       configured: {
         openai_compatible: true,
-        gemini: false,
+        anthropic: false,
       },
       aliases: {
         llm: true,
@@ -80,19 +80,19 @@ describe("cli status helpers", () => {
     expect(
       resolveAggregateProvider({
         openai_compatible: true,
-        gemini: true,
+        anthropic: true,
       }),
     ).toBe("openai_compatible");
     expect(
       resolveAggregateProvider({
         openai_compatible: false,
-        gemini: true,
+        anthropic: true,
       }),
-    ).toBe("gemini");
+    ).toBe("anthropic");
     expect(
       resolveAggregateProvider({
         openai_compatible: false,
-        gemini: false,
+        anthropic: false,
       }),
     ).toBe("local");
   });
@@ -103,7 +103,7 @@ describe("cli status helpers", () => {
     report.aggregate_llm.provider_name = "Local Fallback";
     report.aggregate_llm.configured = {
       openai_compatible: false,
-      gemini: false,
+      anthropic: false,
     };
     report.aggregate_llm.aliases = {
       llm: false,

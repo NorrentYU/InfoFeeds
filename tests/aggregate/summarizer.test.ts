@@ -10,7 +10,8 @@ afterEach(() => {
 
 describe("aggregate summarizer provider", () => {
   it("uses local summarizer when forceLocal is true", async () => {
-    process.env.GEMINI_API_KEY = "test-key";
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    process.env.ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
     const summaryFn = createSummaryFn({ forceLocal: true });
 
     const out = await summaryFn({
@@ -31,7 +32,8 @@ describe("aggregate summarizer provider", () => {
     process.env.LLM_API_KEY = "test-key";
     process.env.LLM_API_URL = "https://api.openai.com/v1";
     process.env.LLM_MODEL = "gpt-4.1-mini";
-    process.env.GEMINI_API_KEY = "gemini-key";
+    process.env.ANTHROPIC_API_KEY = "anthropic-key";
+    process.env.ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 
     const fetchMock = vi.spyOn(globalThis, "fetch" as any).mockResolvedValue(
       new Response(
@@ -122,18 +124,18 @@ describe("aggregate summarizer provider", () => {
     expect(calledUrl).toBe("https://coding.dashscope.aliyuncs.com/v1/chat/completions");
   });
 
-  it("uses Gemini when GEMINI_API_KEY is provided", async () => {
+  it("uses Anthropic when ANTHROPIC_API_KEY is provided", async () => {
     process.env.LLM_API_KEY = "";
     process.env.OPENAI_API_KEY = "";
     process.env.BAILIAN_API_KEY = "";
-    process.env.GEMINI_API_KEY = "test-key";
-    process.env.GEMINI_MODEL = "Gemini 3.1 Flash Lite";
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    process.env.ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
 
     const fetchMock = vi.spyOn(globalThis, "fetch" as any).mockResolvedValue(
       new Response(
         JSON.stringify({
-          candidates: [
-            { content: { parts: [{ text: "**标题**\\n\\n摘要正文" }] } },
+          content: [
+            { type: "text", text: "**标题**\\n\\n摘要正文" },
           ],
         }),
         { status: 200, headers: { "content-type": "application/json" } },
@@ -154,34 +156,27 @@ describe("aggregate summarizer provider", () => {
     expect(out).toContain("摘要正文");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const calledUrl = String(fetchMock.mock.calls[0]?.[0] || "");
-    expect(calledUrl).toContain("models/gemini-3.1-flash-lite:generateContent");
+    expect(calledUrl).toBe("https://api.anthropic.com/v1/messages");
   });
 
-  it("falls back to gemini-2.5-flash-lite when primary model is unavailable", async () => {
+  it("accepts full messages endpoint in ANTHROPIC_BASE_URL", async () => {
     process.env.LLM_API_KEY = "";
     process.env.OPENAI_API_KEY = "";
     process.env.BAILIAN_API_KEY = "";
-    process.env.GEMINI_API_KEY = "test-key";
-    process.env.GEMINI_MODEL = "gemini-3.1-flash-lite";
+    process.env.ANTHROPIC_API_KEY = "test-key";
+    process.env.ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+    process.env.ANTHROPIC_BASE_URL = "https://api.anthropic.com/v1/messages";
 
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch" as any)
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ error: { message: "model not found" } }), {
-          status: 404,
-          headers: { "content-type": "application/json" },
+    const fetchMock = vi.spyOn(globalThis, "fetch" as any).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          content: [
+            { type: "text", text: "**标题**\\n\\n摘要正文" },
+          ],
         }),
-      )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({
-            candidates: [
-              { content: { parts: [{ text: "**标题**\\n\\n摘要正文" }] } },
-            ],
-          }),
-          { status: 200, headers: { "content-type": "application/json" } },
-        ),
-      );
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
+    );
 
     const summaryFn = createSummaryFn();
     const out = await summaryFn({
@@ -195,10 +190,8 @@ describe("aggregate summarizer provider", () => {
     });
 
     expect(out).toContain("摘要正文");
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const firstUrl = String(fetchMock.mock.calls[0]?.[0] || "");
-    const secondUrl = String(fetchMock.mock.calls[1]?.[0] || "");
-    expect(firstUrl).toContain("models/gemini-3.1-flash-lite:generateContent");
-    expect(secondUrl).toContain("models/gemini-2.5-flash-lite:generateContent");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const calledUrl = String(fetchMock.mock.calls[0]?.[0] || "");
+    expect(calledUrl).toBe("https://api.anthropic.com/v1/messages");
   });
 });

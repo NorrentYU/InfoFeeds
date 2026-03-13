@@ -47,7 +47,7 @@ export interface DoctorReport {
     provider_name: string;
     configured: {
       openai_compatible: boolean;
-      gemini: boolean;
+      anthropic: boolean;
     };
     aliases: {
       llm: boolean;
@@ -94,13 +94,13 @@ export interface DoctorReport {
 
 export function resolveAggregateProvider(configured: {
   openai_compatible: boolean;
-  gemini: boolean;
+  anthropic: boolean;
 }): AggregateProvider {
   if (configured.openai_compatible) {
     return "openai_compatible";
   }
-  if (configured.gemini) {
-    return "gemini";
+  if (configured.anthropic) {
+    return "anthropic";
   }
   return "local";
 }
@@ -186,7 +186,7 @@ export function buildNextActions(report: DoctorReport): string[] {
 
   if (report.aggregate_llm.active_provider === "local") {
     actions.push(
-      "Configure an aggregate LLM provider in .env: LLM_API_KEY + LLM_API_URL (+ LLM_MODEL optional), or GEMINI_API_KEY.",
+      "Configure an aggregate LLM provider in .env: LLM_API_KEY + LLM_API_URL (+ LLM_MODEL optional), or ANTHROPIC_API_KEY + ANTHROPIC_MODEL.",
     );
   }
 

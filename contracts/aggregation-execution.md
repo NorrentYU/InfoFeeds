@@ -18,7 +18,7 @@
 2. 调度参数：时区（默认 UTC+8）、推送时间（默认 08:30）、窗口（默认 24h）。
 3. 用户自定义 prompt（可为空）。
 4. 默认 prompt 文件：`contracts/prompts/default-summary-prompt.md`。
-5. LLM 配置：默认使用 OpenAI 兼容接口，读取 `LLM_API_KEY`（必填）、`LLM_API_URL`（可选，默认 `https://api.openai.com/v1`，支持 `.../v1`、完整 `.../chat/completions` 或完整 `.../responses`）、`LLM_MODEL`（可选）；Gemini 为可选兜底。兼容保留 `OPENAI_*` / `BAILIAN_*` 旧变量。
+5. LLM 配置：默认使用 OpenAI 兼容接口，读取 `LLM_API_KEY`（必填）、`LLM_API_URL`（可选，默认 `https://api.openai.com/v1`，支持 `.../v1`、完整 `.../chat/completions` 或完整 `.../responses`）、`LLM_MODEL`（可选）；Anthropic 为可选兜底，读取 `ANTHROPIC_API_KEY`、`ANTHROPIC_MODEL`、`ANTHROPIC_BASE_URL`（可选）与 `ANTHROPIC_VERSION`（可选）。兼容保留 `OPENAI_*` / `BAILIAN_*` 旧变量。
 
 ### 3.2 实现任务
 1. 汇总 5 个渠道 records，按渠道顺序处理：Telegram -> X -> Substack -> Youtube -> 其他。

@@ -1,6 +1,9 @@
 import type { SummaryFn, SummaryRequest } from "./types.js";
 import { readEnvValue } from "../common/env.js";
-import { readOpenAiCompatibleLlmConfig } from "../common/aggregate-llm.js";
+import {
+  readAnthropicLlmConfig,
+  readOpenAiCompatibleLlmConfig,
+} from "../common/aggregate-llm.js";
 
 function normalizeWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -110,103 +113,57 @@ async function readConfigValue(key: string): Promise<string | undefined> {
   return await readEnvValue(key);
 }
 
-function normalizeGeminiModel(raw?: string): string {
-  const fallback = "gemini-2.5-flash-lite";
-  if (!raw || !raw.trim()) {
-    return fallback;
-  }
-
-  const trimmed = raw.trim().toLowerCase();
-  if (trimmed.startsWith("gemini-")) {
-    return trimmed;
-  }
-
-  // Accept friendly names like "Gemini 3.1 Flash Lite".
-  const normalized = trimmed
-    .replace(/^gemini\s+/, "")
-    .replace(/\s+/g, "-");
-  return `gemini-${normalized}`;
-}
-
-function extractTextFromGeminiPayload(payload: any): string {
-  if (!Array.isArray(payload?.candidates)) {
+function extractTextFromAnthropicPayload(payload: any): string {
+  if (!Array.isArray(payload?.content)) {
     return "";
   }
 
   const chunks: string[] = [];
-  for (const candidate of payload.candidates) {
-    if (!Array.isArray(candidate?.content?.parts)) {
-      continue;
-    }
-    for (const part of candidate.content.parts) {
-      if (typeof part?.text === "string" && part.text.trim()) {
-        chunks.push(part.text.trim());
-      }
+  for (const block of payload.content) {
+    if (block?.type === "text" && typeof block?.text === "string" && block.text.trim()) {
+      chunks.push(block.text.trim());
     }
   }
 
   return chunks.join("\n").trim();
 }
 
-async function geminiSummary(request: SummaryRequest): Promise<string> {
-  const apiKey = await readConfigValue("GEMINI_API_KEY");
-  if (!apiKey) {
-    throw new Error("GEMINI_API_KEY missing");
+async function anthropicSummary(request: SummaryRequest): Promise<string> {
+  const config = await readAnthropicLlmConfig();
+  if (!config.configured || !config.apiKey) {
+    throw new Error("ANTHROPIC_API_KEY missing");
   }
 
-  const primaryModel = normalizeGeminiModel(await readConfigValue("GEMINI_MODEL"));
-  const candidates = Array.from(
-    new Set(
-      primaryModel === "gemini-2.5-flash-lite"
-        ? [primaryModel]
-        : [primaryModel, "gemini-2.5-flash-lite"],
-    ),
-  );
+  const response = await fetch(config.endpoint, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": config.apiKey,
+      "anthropic-version": config.version,
+    },
+    signal: request.signal,
+    body: JSON.stringify({
+      model: config.model,
+      max_tokens: 700,
+      temperature: 0.2,
+      messages: [{ role: "user", content: request.prompt }],
+    }),
+  });
 
-  let lastError = "gemini request failed";
-  for (const model of candidates) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-goog-api-key": apiKey,
-      },
-      signal: request.signal,
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: request.prompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          maxOutputTokens: 600,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const raw = await response.text().catch(() => "");
-      lastError = `gemini http ${response.status}${raw ? `: ${raw.slice(0, 200)}` : ""}`;
-
-      // Fallback to the next model only when the current model is unavailable.
-      if (response.status === 404 || response.status === 400) {
-        continue;
-      }
-      throw new Error(lastError);
-    }
-
-    const payload = await response.json();
-    const text = extractTextFromGeminiPayload(payload);
-    if (text) {
-      return text;
-    }
-
-    const blockReason = payload?.promptFeedback?.blockReason;
-    if (typeof blockReason === "string" && blockReason.trim()) {
-      throw new Error(`gemini blocked: ${blockReason}`);
-    }
-    lastError = "gemini empty output";
+  if (!response.ok) {
+    const raw = await response.text().catch(() => "");
+    throw new Error(
+      `anthropic http ${response.status}${raw ? `: ${raw.slice(0, 200)}` : ""}`,
+    );
   }
 
-  throw new Error(lastError);
+  const payload = await response.json();
+  const text = extractTextFromAnthropicPayload(payload);
+  if (!text) {
+    throw new Error("anthropic empty output");
+  }
+
+  return text;
 }
 
 async function openAiCompatibleSummary(
@@ -269,16 +226,16 @@ export function createSummaryFn(params: {
     }
 
     const compatConfig = await readOpenAiCompatibleLlmConfig();
-    const geminiApiKey = await readConfigValue("GEMINI_API_KEY");
-    const useLocal = !compatConfig.configured && !geminiApiKey;
+    const anthropicConfig = await readAnthropicLlmConfig();
+    const useLocal = !compatConfig.configured && !anthropicConfig.configured;
     if (useLocal) {
       return localSummary(request);
     }
     if (compatConfig.configured) {
       return openAiCompatibleSummary(request);
     }
-    if (geminiApiKey) {
-      return geminiSummary(request);
+    if (anthropicConfig.configured) {
+      return anthropicSummary(request);
     }
     return localSummary(request);
   };

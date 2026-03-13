@@ -31,7 +31,7 @@ The project needs six categories of configuration:
    `ANTHROPIC_API_KEY`
    `ANTHROPIC_MODEL`
    `ANTHROPIC_BASE_URL` (optional)
-   `ANTHROPIC_VERSION` (optional, default `2023-06-01`)
+   `ANTHROPIC_VERSION` (optional)
 
 3. YouTube cookies file
    `YOUTUBE_COOKIES_FILE` should point to a readable cookies file if `yt-dlp` needs cookies for video metadata / captions.
